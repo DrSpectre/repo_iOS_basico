@@ -1,0 +1,34 @@
+import Foundation
+
+let hello = "Hello, world!"
+
+// let se utiliza para indicar constantes
+// var se utiliza para indicar variables
+// var nombre = "cosas"  // Implicito que es String
+
+// var nombre_2: String = "Petra"  // Explicito que es string
+
+let edad_1: Int = 50
+let edad_2 = 505.4 // Yo digo que es Decimal
+print("el tipo de edad_2 es \(type(of: edad_2))")
+
+var edad: Int = 10
+let mayoria_de_edad = 6
+
+var nombre: String? = nil
+
+print("El tipo de dato de mayoria_de_edad es \(type(of: mayoria_de_edad))")
+
+// var saludar_a: String = nombre ?? "Fulanito"
+var saludar_a: String = "Buenos dias \(nombre ?? "Fulanito")"
+
+/*if(edad > mayoria_de_edad){
+  print("Si es mayor de edad")
+}
+else {
+  print("No es mayor de edad")
+}
+*/
+
+// print(saludar_a)
+
