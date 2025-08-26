@@ -1,4 +1,5 @@
 
+
 enum RolesJuegoEscondidas{
     case contando
     case buscando_jugadores
@@ -21,10 +22,25 @@ protocol JugadorDeEscondidas{
     func establecer_rol(_ rol_nuevo: RolesJuegoEscondidas) -> Bool
 }
 
-extension JugadorDeEscondidas{
+extension JugadorDeEscondidas where Self: PersonajeJugable { /// Al parecer un protocol se instancia como un struct y no puede mutar el tipo de dato a menos que tenga modificado que aplciara a un tipo en especifico
     func establecer_rol(_ rol_nuevo: RolesJuegoEscondidas) -> Bool {
-        rol = rol_nuevo
-        return true
+        switch(self.rol){
+            case .suspendido: 
+                self.rol = rol_nuevo
+                return true
+            
+            case .cantar_victoria, .encontrado: 
+                if rol_nuevo == .suspendido {
+                    self.rol = rol_nuevo
+                    return true
+                }
+                return false
+                
+                
+            default: 
+                return false
+        }
+        
     }
 }
 
@@ -92,8 +108,4 @@ jugadores.append(PersonajeJugable("Wally", visibilidad: 0.1, ubicacion: punto_de
 jugadores.append(PersonajeJugable("Chuchito", visibilidad: 0.2, ubicacion: punto_de_inicio))
 jugadores.append(PersonajeJugable("Anabelle", visibilidad: 0.9, ubicacion: punto_de_inicio))
 
-
-
-
-
-
+iniciar_juego(jugadores: jugadores)
