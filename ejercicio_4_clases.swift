@@ -1,5 +1,6 @@
 
 
+
 enum RolesJuegoEscondidas{
     case contando
     case buscando_jugadores
@@ -17,10 +18,16 @@ enum RolesJuegoEscondidas{
 
 protocol JugadorDeEscondidas: class{
     var rol: RolesJuegoEscondidas { get set }
+    var compañeros_de_juego: [JugadorDeEscondidas] { get set }
+    var nombre: String { get set }
+    var lugar_actual: UbicacionFisica? { get set }
+    var visibilidad: Double { get set }
     
     func actualizar() -> Bool
     
     func establecer_rol(_ rol_nuevo: RolesJuegoEscondidas) -> Bool
+    
+    func agregar_compañero(_ compañero_nuevo: JugadorDeEscondidas) -> Bool
 }
 
 
@@ -61,9 +68,10 @@ class UbicacionFisica{
     var nombre: String
     var lugares_cercanos: [UbicacionFisica]
     
-    init(_ nombre: String, lugares_cercanos: [UbicacionFisica]){
+    //init(_ nombre: String, lugares_cercanos: [UbicacionFisica]){
+    init(_ nombre: String){
         self.nombre = nombre
-        self.lugares_cercanos = lugares_cercanos
+        self.lugares_cercanos = []
     }
     
     func agregar_lugar(_ lugar: UbicacionFisica) -> Bool{
@@ -75,6 +83,7 @@ class UbicacionFisica{
         
         lugar.lugares_cercanos.append(self)
         self.lugares_cercanos.append(lugar)
+        
         return true
     }
 }
@@ -107,14 +116,18 @@ class Personaje {
 class PersonajeJugable: Personaje, JugadorDeEscondidas{
     var visibilidad: Double
     var rol: RolesJuegoEscondidas = .suspendido
+
+    var lugar_actual: UbicacionFisica?
     
     var numero_contado: Int
-    /// var rol: RolesJuegoEscondidas = RolesJuegoEscondidas.suspendido
+    
+    var compañeros_de_juego: [JugadorDeEscondidas] = []
     
     init(_ nombre: String, visibilidad: Double){
         self.visibilidad = visibilidad
         numero_contado = 0
         super.init(nombre)
+        lugar_actual = nil
     }
     
     func actualizar() -> Bool{
@@ -123,18 +136,56 @@ class PersonajeJugable: Personaje, JugadorDeEscondidas{
                 self.contar_para_buscar()
             
             case .buscando_jugadores:
-                //self.cambiar_ubicacion()
-                //self.identificar_jugadores()
-                print("Todo")
+                self.identificar_jugadores()
+                self.moverse_de_lugar()
+            
+            case .buscando_escondite:
+                self.moverse_de_lugar()
                 
-            case .cantar_victoria, .suspendido:
-                //self.haz_nada()
-                print("TODO")
+                let quedarse_quieto = Int.random(in: 0...10)
+                if quedarse_quieto % 5 == 0{
+                    self.rol = .escondido
+                }
+                
+            case .cantar_victoria:
+                print("TODO")// VAlidar que ya ganoo
+                
+            case .suspendido:
+                print("YO \(nombre) he perdido")
             
             default:
                 print("todo")
         }
         return false
+    }
+    
+    func identificar_jugadores(){
+        for compañero in compañeros_de_juego{
+            if compañero.lugar_actual!.nombre == self.lugar_actual!.nombre{
+                let probabildiad_de_omitir = Int(compañero.visibilidad * 100)
+                
+                let suerte = Int.random(in: 0...100)
+                
+                if suerte > probabildiad_de_omitir{
+                    compañero.rol = .suspendido
+                }
+                
+            }
+        }
+    }
+    
+    func moverse_de_lugar(){
+        var indice_de_nuevo_lugar = Int.random(
+                in: 0..<lugar_actual!.lugares_cercanos.count
+            )
+            
+        var nuevo_lugar = lugar_actual!.lugares_cercanos[indice_de_nuevo_lugar]
+        
+        let deberia_de_cambiar = Int.random(in: 0...10)
+        
+        if deberia_de_cambiar % 2 == 0 {
+            cambiar_de_lugar_a(nuevo_lugar)
+        }
     }
     
     func contar_para_buscar(){
@@ -145,6 +196,37 @@ class PersonajeJugable: Personaje, JugadorDeEscondidas{
             self.rol = .buscando_jugadores
         }
     }
+    
+    func cambiar_de_lugar_a(_ ubicacion: UbicacionFisica) -> Bool{
+        if self.lugar_actual == nil {
+            self.lugar_actual = ubicacion
+            return true 
+        } 
+        
+        // if let ubi = lugar actual {}
+        //if ubicacion != nil && ubicacion.nombre == lugar_actual.nombre{
+        if ubicacion.nombre == self.lugar_actual!.nombre{
+            return false
+        }
+        
+        lugar_actual = ubicacion
+        return true
+    }
+    
+    func agregar_compañero(_ compañero_nuevo: JugadorDeEscondidas) -> Bool{
+        if compañero_nuevo.nombre == self.nombre{
+            return false
+        }
+        
+        for compañero in compañeros_de_juego{
+            if compañero.nombre == compañero_nuevo.nombre{
+                return false
+            }
+        }
+        
+        compañeros_de_juego.append(compañero_nuevo)
+        return true
+    }
 }
 
 func iniciar_juego(jugadores: [JugadorDeEscondidas]) {
@@ -154,6 +236,8 @@ func iniciar_juego(jugadores: [JugadorDeEscondidas]) {
     jugador_que_busca.establecer_rol(.contando)
     
     for jugador in jugadores {
+        jugador_que_busca.agregar_compañero(jugador)
+        
         if jugador.rol == .suspendido{
             jugador.establecer_rol(.buscando_escondite)
         }
@@ -177,25 +261,39 @@ let sala_de_estar = UbicacionFisica("Sala de estar")
 let salon = UbicacionFisica("Salon")
 let baños = UbicacionFisica("Baños")
 
+// Loby --- sala_de_estar
 loby.agregar_lugar(sala_de_estar)
 
+// Loby --- Salon
+loby.agregar_lugar(salon)
+
+// Loby --- oficina
 loby.agregar_lugar(oficina)
 
+// sala_de_estar --- Baño
+sala_de_estar.agregar_lugar(baños)
 
-var ubicaciones_juego [UbicacionFisica] = []
+// Salon --- Baño
+salon.agregar_lugar(baños)
+
+
+
+
+var ubicaciones_juego: [UbicacionFisica] = []
 ubicaciones_juego.append(loby)
 
 
 iniciar_juego(jugadores: jugadores)
 
 for jugador in jugadores{
-    print("El rol de \(jugador.nombre) es \(jugador.rol)")
+    jugador.cambiar_de_lugar_a(loby)
 }
 
 
 /// Aqui tenemos la parte de auto juego
 var ciclo_actual = 0
 
+// Aqui va mi juego
 while true {
     for jugador in jugadores{
         jugador.actualizar()
@@ -203,7 +301,10 @@ while true {
     
     for jugador in jugadores{
         print("El rol de \(jugador.nombre) es \(jugador.rol)")
+        print("Estoy en: \(jugador.lugar_actual?.nombre ?? "No se")")
+        print("Mis compañeros son: \(jugador.compañeros_de_juego.count)")
     }
+    print("")
    
    ciclo_actual += 1 
    if ciclo_actual > 25{
